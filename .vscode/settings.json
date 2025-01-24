@@ -1,0 +1,11 @@
+{
+    "files.associations": {
+        "sstream": "c",
+        "libft.h": "c",
+        "errno.h": "c",
+        "fcntl.h": "c",
+        "unistd.h": "c",
+        "stdio.h": "c",
+        "string.h": "c"
+    }
+}
