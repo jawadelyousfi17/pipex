@@ -22,37 +22,58 @@ void child_process(char **argv, char **envp, t_args *args, int fd[2])
 {
     int fd_in;
 
+    if (!args->path || !args->cmd_args)
+        exit(127);
     fd_in = open(argv[1], O_RDWR);
     if (fd_in < 0)
     {
-        ft_printf("p1 pipex: %s: %s\n", strerror(errno), argv[1]);
+        ft_printf("pipex: %s: %s\n", strerror(errno), argv[1]);
         close(fd[0]);
         close(fd[1]);
         exit(2);
     }
     close(fd[0]);
-    dup2(fd[1], STDOUT_FILENO);
-    close(fd[1]);
-    dup2(fd_in, STDIN_FILENO);
-    execve(args->path, args->cmd_args, envp);
+    if (dup2(fd[1], STDOUT_FILENO) == -1 || dup2(fd_in, STDIN_FILENO) == -1)
+    {
+        perror("pipex");
+        close(fd[0]);
+        close(fd[1]);
+        exit(2);
+    }
+    if (execve(args->path, args->cmd_args, envp) == -1)
+    {
+        perror("pipex");
+        close(fd[0]);
+        close(fd[1]);
+        exit(127);
+    }
 }
 
 void child_process_1(char **argv, char **envp, t_args *args, int fd[2])
 {
     int fd_out;
 
-    fd_out = open(argv[4], O_RDWR | O_CREAT, 0777);
+    if (!args->path || !args->cmd_args)
+        exit(127);
+    fd_out = open(argv[4], O_RDWR | O_CREAT | O_TRUNC, 0777);
     if (fd_out < 0)
     {
-        ft_printf("p2 pipex: %s: %s\n", strerror(errno), argv[4]);
-        close(fd[0]);
-        close(fd[1]);
-        exit(2);
+        ft_printf("pipex: %s: %s\n", strerror(errno), argv[4]);
+        (close(fd[0]), close(fd[1]), exit(2));
     }
     close(fd[1]);
-    dup2(fd[0], STDIN_FILENO);
-    dup2(fd_out, STDOUT_FILENO);
-    execve(args->path, args->cmd_args, envp);
+    if (dup2(fd[0], STDIN_FILENO) == -1 || dup2(fd_out, STDOUT_FILENO) == -1)
+    {
+        (perror("pipex"), close(fd[0]), close(fd[1]));
+        exit(2);
+    }
+    if (execve(args->path, args->cmd_args, envp) == -1)
+    {
+        perror("pipex");
+        close(fd[0]);
+        close(fd[1]);
+        exit(127);
+    }
 }
 
 void init_args(char *cmd, t_args *args, char **envp, int fd[2])
@@ -61,27 +82,29 @@ void init_args(char *cmd, t_args *args, char **envp, int fd[2])
     if (!args->path)
     {
         if (errno != ENOENT)
-            ft_printf("pipex: %s\n", strerror(errno));
+            ft_printf("pipex: %s\n%d", strerror(errno));
         args->cmd_args = NULL;
-        // clean_all(args, 1);
-        close(fd[0]);
-        close(fd[1]);
-        exit(1);
+        clean_all(args, 1);
+            close(fd[0]);
+            close(fd[1]);
+        return;
     }
     args->cmd_args = ft_split(cmd, ' ');
     if (!args->cmd_args)
     {
         ft_printf("pipex: %s\n", strerror(errno));
-        // clean_all(args, 1);
-        close(fd[0]);
-        close(fd[1]);
-        exit(1);
+        clean_all(args, 1);
+        if (fd[0] != -1)
+            close(fd[0]);
+        if (fd[1] != -1)
+            close(fd[1]);
+        return;
     }
 }
 
 void f()
 {
-    system("leaks a.out");
+    // system("leaks a.out");
 }
 
 void clean_all(t_args *args, int code)
@@ -95,54 +118,40 @@ void ff()
 }
 int main(int argc, char **argv, char **envp)
 {
-    t_args args[2];
     int pid1;
     int pid2;
+    t_args args[2];
     int fd[2];
-    int retrun_value;
 
-    ft_printf("MY PIPE = %d\n", getpid());
     atexit(ff);
-    if (argc != 5)
-        return 1;
+
     pipe(fd);
-    
+
     init_args(argv[2], &args[0], envp, fd);
+
     pid1 = fork();
-    if (pid1 == -1)
-    {
-        ft_printf("pipex: %s\n", strerror(errno));
-        exit(1);
-    }
     if (pid1 == 0)
     {
         child_process(argv, envp, &args[0], fd);
     }
-    clean_all(&args[0], 1);
-    close(fd[0]);
-    close(fd[1]);
-    waitpid(pid1, NULL, 0);
 
-    pid2 = fork();
-    if (pid2 == -1)
-    {
-        clean_all(&args[0], 2);
-        clean_all(&args[1], 2);
-        ft_printf("pipex: %s\n", strerror(errno));
-        exit(2);
-    }
     init_args(argv[3], &args[1], envp, fd);
+    pid2 = fork();
     if (pid2 == 0)
     {
         child_process_1(argv, envp, &args[1], fd);
     }
 
-    close(fd[0]);
-    close(fd[1]);
-    waitpid(pid2, &retrun_value, 0);
+    if (fd[0] != -1)
+            close(fd[0]);
+        if (fd[1] != -1)
+            close(fd[1]);
+
+    waitpid(pid1, NULL, 0);
+    waitpid(pid2, NULL, 0);
+
+    clean_all(&args[0], 1);
     clean_all(&args[1], 1);
 
-    if (retrun_value != 0)
-        exit(2);
     return 0;
 }
