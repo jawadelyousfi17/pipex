@@ -94,15 +94,16 @@ char *get_path(char *arg, char **envp)
     int i;
     char *sub;
 
-    sub = ft_substr(arg, 0, get_first_word_index(arg));
-    if (!sub)
-        return (NULL);
+    sub = NULL;
     if (*arg == '/')
     {
-        if (access(sub, F_OK | X_OK) == 0)
-            return (arg);
+        sub = ft_substr(arg, 0, get_first_word_index(arg));
+        if (!sub)
+            return (NULL);
+        if (access(arg, F_OK | X_OK) == 0)
+            return (free(sub), NULL);
         else
-            return (ft_printf("pipex: %s: %s\n",strerror(errno), sub), NULL);
+            return (ft_printf("pipex: %s: %s\n", strerror(errno), arg), free(sub), NULL);
     }
     cmd = get_cmd(arg);
     if (!cmd)

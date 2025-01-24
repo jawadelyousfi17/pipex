@@ -4,6 +4,7 @@
 #include <sys/errno.h>
 #include <string.h>
 #include "./libft/libft.h"
+#include <sys/wait.h>
 
 typedef struct s_args
 {
@@ -85,22 +86,25 @@ int main(int argc, char **argv, char **envp)
     int pid2;
     int fd[2];
     int retrun_value;
-    // atexit(f);
 
     if (argc != 5)
         return 1;
     pipe(fd);
-    init_args(argv[2], &args[0], envp);
+    
     pid1 = fork();
     if (pid1 == -1)
     {
-        clean_all(&args[0], 3);
         ft_printf("pipex: %s\n", strerror(errno));
         exit(1);
     }
+    init_args(argv[2], &args[0], envp);
     if (pid1 == 0)
+    {
         child_process(argv, envp, &args[0], fd);
-    init_args(argv[3], &args[1], envp);
+    }
+    waitpid(pid1, NULL, 0);
+    clean_all(&args[0], 1);
+
     pid2 = fork();
     if (pid2 == -1)
     {
@@ -109,15 +113,15 @@ int main(int argc, char **argv, char **envp)
         ft_printf("pipex: %s\n", strerror(errno));
         exit(2);
     }
+    init_args(argv[3], &args[1], envp);
     if (pid2 == 0)
+    {
         child_process_1(argv, envp, &args[1], fd);
+    }
+
     close(fd[0]);
     close(fd[1]);
-
-    waitpid(pid1, NULL, 0);
     waitpid(pid2, &retrun_value, 0);
-
-    clean_all(&args[0], 1);
     clean_all(&args[1], 1);
 
     if (retrun_value != 0)
