@@ -102,10 +102,11 @@ char *get_path(char *arg, char **envp)
     if (*arg == '/')
     {
         if (access(sub, F_OK | X_OK) == 0)
-            return (arg);
+            return (free(sub), arg);
         else
-            return (ft_printf("pipex: %s: %s\n",strerror(errno), sub), NULL);
+            return (ft_printf("pipex: %s: %s\n",strerror(errno), sub), free(sub), NULL);
     }
+    free(sub);
     cmd = get_cmd(arg);
     if (!cmd)
         return (NULL);

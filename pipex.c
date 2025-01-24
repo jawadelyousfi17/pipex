@@ -123,7 +123,6 @@ int main(int argc, char **argv, char **envp)
     t_args args[2];
     int fd[2];
 
-    atexit(ff);
 
     pipe(fd);
 
