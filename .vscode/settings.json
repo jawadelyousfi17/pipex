@@ -6,6 +6,7 @@
         "fcntl.h": "c",
         "unistd.h": "c",
         "stdio.h": "c",
-        "string.h": "c"
+        "string.h": "c",
+        "stdlib.h": "c"
     }
 }

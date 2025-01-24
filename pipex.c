@@ -26,10 +26,13 @@ void child_process(char **argv, char **envp, t_args *args, int fd[2])
     if (fd_in < 0)
     {
         ft_printf("p1 pipex: %s: %s\n", strerror(errno), argv[1]);
+        close(fd[0]);
+        close(fd[1]);
         exit(2);
     }
     close(fd[0]);
     dup2(fd[1], STDOUT_FILENO);
+    close(fd[1]);
     dup2(fd_in, STDIN_FILENO);
     execve(args->path, args->cmd_args, envp);
 }
@@ -42,6 +45,8 @@ void child_process_1(char **argv, char **envp, t_args *args, int fd[2])
     if (fd_out < 0)
     {
         ft_printf("p2 pipex: %s: %s\n", strerror(errno), argv[4]);
+        close(fd[0]);
+        close(fd[1]);
         exit(2);
     }
     close(fd[1]);
@@ -50,7 +55,7 @@ void child_process_1(char **argv, char **envp, t_args *args, int fd[2])
     execve(args->path, args->cmd_args, envp);
 }
 
-void init_args(char *cmd, t_args *args, char **envp)
+void init_args(char *cmd, t_args *args, char **envp, int fd[2])
 {
     args->path = get_path(cmd, envp);
     if (!args->path)
@@ -58,12 +63,18 @@ void init_args(char *cmd, t_args *args, char **envp)
         if (errno != ENOENT)
             ft_printf("pipex: %s\n", strerror(errno));
         args->cmd_args = NULL;
+        // clean_all(args, 1);
+        close(fd[0]);
+        close(fd[1]);
         exit(1);
     }
     args->cmd_args = ft_split(cmd, ' ');
     if (!args->cmd_args)
     {
         ft_printf("pipex: %s\n", strerror(errno));
+        // clean_all(args, 1);
+        close(fd[0]);
+        close(fd[1]);
         exit(1);
     }
 }
@@ -78,7 +89,10 @@ void clean_all(t_args *args, int code)
     free(args->path);
     free_matrix(args->cmd_args);
 }
-
+void ff()
+{
+    system("lsof -c a.out");
+}
 int main(int argc, char **argv, char **envp)
 {
     t_args args[2];
@@ -87,23 +101,27 @@ int main(int argc, char **argv, char **envp)
     int fd[2];
     int retrun_value;
 
+    ft_printf("MY PIPE = %d\n", getpid());
+    atexit(ff);
     if (argc != 5)
         return 1;
     pipe(fd);
     
+    init_args(argv[2], &args[0], envp, fd);
     pid1 = fork();
     if (pid1 == -1)
     {
         ft_printf("pipex: %s\n", strerror(errno));
         exit(1);
     }
-    init_args(argv[2], &args[0], envp);
     if (pid1 == 0)
     {
         child_process(argv, envp, &args[0], fd);
     }
-    waitpid(pid1, NULL, 0);
     clean_all(&args[0], 1);
+    close(fd[0]);
+    close(fd[1]);
+    waitpid(pid1, NULL, 0);
 
     pid2 = fork();
     if (pid2 == -1)
@@ -113,7 +131,7 @@ int main(int argc, char **argv, char **envp)
         ft_printf("pipex: %s\n", strerror(errno));
         exit(2);
     }
-    init_args(argv[3], &args[1], envp);
+    init_args(argv[3], &args[1], envp, fd);
     if (pid2 == 0)
     {
         child_process_1(argv, envp, &args[1], fd);
