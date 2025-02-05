@@ -1,7 +1,6 @@
-#include "./libft/libft.h"
+#include "../libft/libft.h"
 #include <sys/errno.h>
 #include <string.h>
-#include <stdio.h>
 
 char **free_matrix(char **m)
 {
@@ -102,8 +101,6 @@ char *get_path(char *arg, char **envp)
         return (NULL);
     if (access(sub, F_OK | X_OK) == 0)
             return (sub);
-    if (arg[0] == '/' || arg[0] == '.')
-        return (ft_printf("pipex: %s: %s\n",strerror(errno), arg), NULL);
     free(sub);
     cmd = get_cmd(arg);
     if (!cmd)

@@ -14,7 +14,7 @@
 
 int	ft_putchar_stdout(int c)
 {
-	return (write(1, &c, 1));
+	return (write(2, &c, 1));
 }
 
 static size_t	f_strlen(char *s)
@@ -32,6 +32,6 @@ static size_t	f_strlen(char *s)
 int	ft_putstr_stdout(char *s)
 {
 	if (!s)
-		return (write(1, "(null)", 6));
-	return (write(1, s, f_strlen(s)));
+		return (write(2, "(null)", 6));
+	return (write(2, s, f_strlen(s)));
 }
