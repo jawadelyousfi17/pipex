@@ -3,6 +3,14 @@
 #include <string.h>
 #include <stdio.h>
 
+void print_error(char *error_message, char *info)
+{
+    ft_putstr_fd("pipex: ", 2);
+    ft_putstr_fd(info, 2);
+    ft_putstr_fd(": ", 2);
+    ft_putendl_fd(error_message, 2);
+}
+
 char **free_matrix(char **m)
 {
     int i;
@@ -17,26 +25,6 @@ char **free_matrix(char **m)
     }
     free(m);
     return NULL;
-}
-
-char *get_cmd(char *str)
-{
-    int i;
-    int start;
-    char *r;
-    char *tmp;
-
-    i = 0;
-    while (str[i] && (str[i] == ' ' || str[i] == '\t'))
-        i++;
-    start = i;
-    while (str[i] && str[i] != ' ' && str[i] != '\t')
-        i++;
-    tmp = ft_substr(str, start, i - start);
-    if (!tmp)
-        return NULL;
-    r = ft_strjoin("/", tmp);
-    return (free(tmp), r);
 }
 
 char **get_paths(char **envp)
@@ -67,48 +55,40 @@ char *extract_path(char **paths, char *cmd)
     }
     if (paths[i] == NULL)
     {
-        ft_printf("pipex: command not found: %s\n", cmd + 1);
         r = NULL;
     }
     return (free_matrix(paths), free(cmd), r);
 }
 
-int get_first_word_index(char *s)
+int is_directory(char *s)
 {
-    int i;
-
-    i = 0;
-    while (s[i] && (s[i] == ' ' || s[i] == '\t'))
-    {
-        i++;
-    }
-    while (s[i] && s[i] != ' ' && s[i] != '\t')
-    {
-        i++;
-    }
-    return i;
+    if (!*s)
+        return 0;
+    if (ft_strlen(s) < 2)
+        return (*s == '/');
+    return (s[0] == '/' || (s[0] == '.' && s[1] == '/'));
 }
 
-char *get_path(char *arg, char **envp)
+char *get_path(char *args, char **envp)
 {
     char **paths;
     char *r;
     char *cmd;
     int i;
-    char *sub;
 
-    sub = ft_substr(arg, 0, get_first_word_index(arg));
-    if (!sub)
-        return (NULL);
-    if (access(sub, F_OK | X_OK) == 0)
-            return (sub);
-    if (arg[0] == '/' || arg[0] == '.')
-        return (ft_printf("pipex: %s: %s\n",strerror(errno), arg), NULL);
-    free(sub);
-    cmd = get_cmd(arg);
+    i = 0;
+    if (!args)
+        return NULL;
+    if (is_directory(args))
+        return ft_strdup(args);
+    cmd = ft_strjoin("/", args);
     if (!cmd)
         return (NULL);
-    paths = get_paths(envp);
+    while (envp[i] && ft_strnstr(envp[i], "PATH", 4) == NULL)
+        i++;
+    if (!envp[i])
+        return (free(cmd), NULL);
+    paths = ft_split(envp[i] + 5, ':');
     if (!paths)
         return (free(cmd), NULL);
     return (extract_path(paths, cmd));
